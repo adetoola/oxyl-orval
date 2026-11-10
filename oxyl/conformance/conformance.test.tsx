@@ -290,22 +290,25 @@ describe('3 and 4. If-Match and per-request headers', () => {
   });
 
   it('types If-Match as required and leaves the global header out of signatures', () => {
-    const archive: ArchiveWidgetHeaders = {
-      'If-Match': '"v1"',
-      'Idempotency-Key': 'k',
-    };
-    const create: CreateWidgetHeaders = { 'Idempotency-Key': 'k' };
-    // @ts-expect-error If-Match is required in the mutation variables
-    const missing: Parameters<
+    type ArchiveVariables = Parameters<
       ReturnType<typeof useArchiveWidget>['mutate']
-    >[0] = { widget: 'w', headers: {} };
-    // @ts-expect-error the header the client sets globally is not a parameter
-    const extra: CreateWidgetHeaders = {
-      'Idempotency-Key': 'k',
-      'Api-Version': '1',
-    };
+    >[0];
+    const noHeaders = {};
+    const versioned = { 'Idempotency-Key': 'k', 'Api-Version': '1' };
 
-    expect([archive, create, missing, extra]).toHaveLength(4);
+    const archive: ArchiveVariables = {
+      widget: 'w',
+      headers: { 'If-Match': '"v1"' },
+    };
+    // @ts-expect-error If-Match is required in the mutation variables
+    const missing: ArchiveVariables = { widget: 'w', headers: noHeaders };
+    const create: CreateWidgetHeaders = { 'Idempotency-Key': 'k' };
+    const keys: keyof CreateWidgetHeaders = 'Idempotency-Key';
+    // @ts-expect-error the header the client sets globally is not a parameter
+    const global: keyof CreateWidgetHeaders = 'Api-Version';
+    const full: ArchiveWidgetHeaders = { 'If-Match': '"v1"', ...versioned };
+
+    expect([archive, missing, create, keys, global, full]).toHaveLength(6);
   });
 });
 
