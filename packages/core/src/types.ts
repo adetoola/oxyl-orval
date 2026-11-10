@@ -1734,6 +1734,14 @@ export interface NormalizedQueryOptions {
    * `useInfiniteQueryNextPageParam`.
    */
   useInfiniteQueryLastItemParam?: InfiniteQueryLastItemParam;
+  /**
+   * Name of the request header that carries an idempotency key. A mutation
+   * for an operation declaring it creates the key itself — one per set of
+   * variables, so a retry sends the same key — and the header becomes optional
+   * in the mutation variables for a caller that wants to pass its own.
+   * Requires `output.headers`.
+   */
+  mutationIdempotencyHeader?: string;
   usePrefetch?: boolean;
   useInvalidate?: boolean;
   useSetQueryData?: boolean;
@@ -1799,6 +1807,14 @@ export interface QueryOptions {
    * `useInfiniteQueryNextPageParam`.
    */
   useInfiniteQueryLastItemParam?: InfiniteQueryLastItemParam;
+  /**
+   * Name of the request header that carries an idempotency key. A mutation
+   * for an operation declaring it creates the key itself — one per set of
+   * variables, so a retry sends the same key — and the header becomes optional
+   * in the mutation variables for a caller that wants to pass its own.
+   * Requires `output.headers`.
+   */
+  mutationIdempotencyHeader?: string;
   usePrefetch?: boolean;
   useInvalidate?: boolean;
   useSetQueryData?: boolean;

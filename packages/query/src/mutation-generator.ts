@@ -514,6 +514,40 @@ export const getMutatorMutationOptionsLiteral = (hasInvalidation: boolean) =>
     ? '{...mutationOptions, mutationFn, onSuccess}'
     : '{...mutationOptions, mutationFn}';
 
+const IDEMPOTENT_HEADERS_NAME = 'idempotentHeaders';
+
+/**
+ * The `headers` entry of the mutation variables once the mutation supplies the
+ * idempotency key. With no other header declared there is nothing the caller
+ * must pass, so the entry as a whole becomes optional.
+ */
+export const getIdempotentHeadersDefinition = (
+  name: string,
+  headers: GeneratorVerbOptions['headers'],
+  idempotencyHeader: string,
+) => {
+  const type = headers?.schema.name ?? 'object';
+  const key = `'${idempotencyHeader}'`;
+  const isOnlyHeader = headers?.paramNames?.length === 1;
+
+  return `${name}${isOnlyHeader ? '?' : ''}: Omit<${type}, ${key}> & Partial<Pick<${type}, ${key}>>`;
+};
+
+/**
+ * One key per variables object. A retry calls the mutation function again
+ * with the same object, so it sends the same key; a new `mutate` call brings a
+ * new object and gets a new key. A key the caller passed wins.
+ */
+export const getIdempotentHeadersImplementation = (
+  idempotencyKeysName: string,
+  idempotencyHeader: string,
+) => `let idempotencyKey = ${idempotencyKeysName}.get(props);
+          if (idempotencyKey === undefined) {
+            idempotencyKey = globalThis.crypto.randomUUID();
+            ${idempotencyKeysName}.set(props, idempotencyKey);
+          }
+          const ${IDEMPOTENT_HEADERS_NAME} = { '${idempotencyHeader}': idempotencyKey, ...headers };`;
+
 export interface MutationHookContext {
   verbOptions: GeneratorVerbOptions;
   options: GeneratorOptions;
@@ -559,14 +593,29 @@ export const generateMutationHook = async ({
       })
     : undefined;
 
+  // `mutationIdempotencyHeader`: the mutation supplies the key, so the caller
+  // no longer has to. The header stays in the variables, as optional, for a
+  // caller that passes its own.
+  const idempotencyHeader = verbOptions.headers?.paramNames?.find(
+    (name) =>
+      name.toLowerCase() === query.mutationIdempotencyHeader?.toLowerCase(),
+  );
+  const idempotencyKeysName = camel(`${operationName}-idempotency-keys`);
+
   const bodyOptionalMark = body.isOptional ? '?' : '';
   const definitions = props
-    .map(({ definition, type }) =>
+    .map(({ definition, name, type }) =>
       type === GetterPropType.BODY
         ? mutator?.bodyTypeName
           ? `data${bodyOptionalMark}: ${mutator.bodyTypeName}<${body.definition}>`
           : `data${bodyOptionalMark}: ${body.definition}`
-        : definition,
+        : type === GetterPropType.HEADER && idempotencyHeader
+          ? getIdempotentHeadersDefinition(
+              name,
+              verbOptions.headers,
+              idempotencyHeader,
+            )
+          : definition,
     )
     .join(';');
 
@@ -697,7 +746,11 @@ export const generateMutationHook = async ({
   // For Angular/React mutations with invalidation, add queryClient as second required param
   const queryClientParam = hasInvalidation ? 'queryClient: QueryClient, ' : '';
 
-  const mutationOptionsFn = `export const ${mutationOptionsFnName} = <TError = ${errorType},
+  const mutationOptionsFn = `${
+    idempotencyHeader
+      ? `const ${idempotencyKeysName} = new WeakMap<object, string>();\n\n`
+      : ''
+  }export const ${mutationOptionsFnName} = <TError = ${errorType},
     TContext = unknown>(${httpFirstParam}${queryClientParam}${mutationArgumentsForOptions}): ${mutationOptionFnReturnType} => {
 
 ${hooksOptionImplementation}
@@ -711,8 +764,21 @@ ${hooksOptionImplementation}
 
       const mutationFn: MutationFunction<Awaited<ReturnType<${dataType}>>, ${mutationVariablesType}> = (${properties ? 'props' : ''}) => {
           ${properties ? `const {${properties}} = props ?? {};` : ''}
+          ${idempotencyHeader ? getIdempotentHeadersImplementation(idempotencyKeysName, idempotencyHeader) : ''}
 
-          return  ${operationReferenceName}(${adapter.getMutationHttpPrefix(mutator)}${properties}${
+          return  ${operationReferenceName}(${adapter.getMutationHttpPrefix(mutator)}${
+            idempotencyHeader
+              ? props
+                  .map(({ name, type }) =>
+                    type === GetterPropType.BODY
+                      ? 'data'
+                      : type === GetterPropType.HEADER
+                        ? IDEMPOTENT_HEADERS_NAME
+                        : name,
+                  )
+                  .join(',')
+              : properties
+          }${
             properties ? ',' : ''
           }${getMutationRequestArgs(isRequestOptions, httpClient, mutator, useRuntimeFetcher)})
         }

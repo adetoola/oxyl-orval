@@ -2058,6 +2058,9 @@ function normalizeQueryOptions(
             queryOptions.useInfiniteQueryLastItemParam,
         }
       : {}),
+    ...(queryOptions.mutationIdempotencyHeader
+      ? { mutationIdempotencyHeader: queryOptions.mutationIdempotencyHeader }
+      : {}),
     ...(queryOptions.options ? { options: queryOptions.options } : {}),
     ...(globalOptions.queryKey
       ? {
