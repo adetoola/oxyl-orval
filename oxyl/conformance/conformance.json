@@ -1,0 +1,850 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Cursor, idempotency and precondition conformance",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/widgets": {
+      "get": {
+        "operationId": "listWidgets",
+        "tags": [
+          "widgets"
+        ],
+        "description": "List whose body declares the next cursor and a has-more flag.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            }
+          },
+          {
+            "name": "startingAfter",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endingBefore",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Api-Version",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "2026-01-01"
+            },
+            "description": "Contract version. Set globally by the client, so it is removed from generated signatures."
+          },
+          {
+            "name": "expand",
+            "in": "query",
+            "required": false,
+            "explode": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "data.owner"
+                ]
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WidgetList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error"
+          },
+          "401": {
+            "description": "Error"
+          },
+          "403": {
+            "description": "Error"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createWidget",
+        "tags": [
+          "widgets"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Api-Version",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "2026-01-01"
+            },
+            "description": "Contract version. Set globally by the client, so it is removed from generated signatures."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WidgetCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WidgetResponse"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error"
+          },
+          "401": {
+            "description": "Error"
+          },
+          "403": {
+            "description": "Error"
+          },
+          "409": {
+            "description": "Error"
+          },
+          "422": {
+            "description": "Error"
+          }
+        }
+      }
+    },
+    "/api/widgets/{widget}": {
+      "get": {
+        "operationId": "retrieveWidget",
+        "tags": [
+          "widgets"
+        ],
+        "parameters": [
+          {
+            "name": "widget",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Api-Version",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "2026-01-01"
+            },
+            "description": "Contract version. Set globally by the client, so it is removed from generated signatures."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WidgetResponse"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error"
+          },
+          "403": {
+            "description": "Error"
+          },
+          "404": {
+            "description": "Error"
+          }
+        }
+      }
+    },
+    "/api/widgets/{widget}/rename": {
+      "post": {
+        "operationId": "renameWidget",
+        "tags": [
+          "widgets"
+        ],
+        "parameters": [
+          {
+            "name": "widget",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Api-Version",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "2026-01-01"
+            },
+            "description": "Contract version. Set globally by the client, so it is removed from generated signatures."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WidgetRename"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WidgetResponse"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error"
+          },
+          "401": {
+            "description": "Error"
+          },
+          "403": {
+            "description": "Error"
+          },
+          "404": {
+            "description": "Error"
+          },
+          "409": {
+            "description": "Error"
+          },
+          "412": {
+            "description": "Error"
+          },
+          "428": {
+            "description": "Error"
+          }
+        }
+      }
+    },
+    "/api/widgets/{widget}/archive": {
+      "post": {
+        "operationId": "archiveWidget",
+        "tags": [
+          "widgets"
+        ],
+        "parameters": [
+          {
+            "name": "widget",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Api-Version",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "2026-01-01"
+            },
+            "description": "Contract version. Set globally by the client, so it is removed from generated signatures."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WidgetResponse"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error"
+          },
+          "403": {
+            "description": "Error"
+          },
+          "404": {
+            "description": "Error"
+          },
+          "409": {
+            "description": "Error"
+          },
+          "412": {
+            "description": "Error"
+          },
+          "428": {
+            "description": "Error"
+          }
+        }
+      }
+    },
+    "/api/gadgets": {
+      "get": {
+        "operationId": "listGadgets",
+        "tags": [
+          "gadgets"
+        ],
+        "description": "List with no paging fields in the body: the next page starts after the last item.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            }
+          },
+          {
+            "name": "startingAfter",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endingBefore",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Api-Version",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "2026-01-01"
+            },
+            "description": "Contract version. Set globally by the client, so it is removed from generated signatures."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GadgetList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error"
+          },
+          "401": {
+            "description": "Error"
+          },
+          "403": {
+            "description": "Error"
+          }
+        }
+      }
+    },
+    "/api/sprockets": {
+      "get": {
+        "operationId": "listSprockets",
+        "tags": [
+          "sprockets"
+        ],
+        "description": "List with a has-more flag but no cursor in the body.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            }
+          },
+          {
+            "name": "startingAfter",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endingBefore",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Api-Version",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "2026-01-01"
+            },
+            "description": "Contract version. Set globally by the client, so it is removed from generated signatures."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SprocketList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error"
+          },
+          "401": {
+            "description": "Error"
+          },
+          "403": {
+            "description": "Error"
+          }
+        }
+      }
+    },
+    "/api/status": {
+      "get": {
+        "operationId": "retrieveStatus",
+        "tags": [
+          "status"
+        ],
+        "description": "Not paginated: must get no infinite hook.",
+        "parameters": [
+          {
+            "name": "Api-Version",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "2026-01-01"
+            },
+            "description": "Contract version. Set globally by the client, so it is removed from generated signatures."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "RequestMetadata": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "req_123"
+          }
+        }
+      },
+      "Widget": {
+        "type": "object",
+        "required": [
+          "id",
+          "object",
+          "displayName",
+          "status",
+          "createdAt",
+          "archivedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "wid_123"
+          },
+          "object": {
+            "type": "string",
+            "enum": [
+              "widget"
+            ]
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "archived"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "archivedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "Gadget": {
+        "type": "object",
+        "required": [
+          "id",
+          "object"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "object": {
+            "type": "string",
+            "enum": [
+              "gadget"
+            ]
+          }
+        }
+      },
+      "Sprocket": {
+        "type": "object",
+        "required": [
+          "id",
+          "object"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "object": {
+            "type": "string",
+            "enum": [
+              "sprocket"
+            ]
+          }
+        }
+      },
+      "WidgetResponse": {
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Widget"
+          },
+          "meta": {
+            "type": "object",
+            "required": [
+              "request"
+            ],
+            "properties": {
+              "request": {
+                "$ref": "#/components/schemas/RequestMetadata"
+              }
+            }
+          }
+        }
+      },
+      "StatusResponse": {
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "ok"
+            ],
+            "properties": {
+              "ok": {
+                "type": "boolean"
+              }
+            }
+          },
+          "meta": {
+            "type": "object",
+            "required": [
+              "request"
+            ],
+            "properties": {
+              "request": {
+                "$ref": "#/components/schemas/RequestMetadata"
+              }
+            }
+          }
+        }
+      },
+      "WidgetList": {
+        "type": "object",
+        "required": [
+          "object",
+          "data",
+          "meta",
+          "hasMore"
+        ],
+        "properties": {
+          "object": {
+            "type": "string",
+            "enum": [
+              "list"
+            ]
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Widget"
+            }
+          },
+          "meta": {
+            "type": "object",
+            "required": [
+              "request"
+            ],
+            "properties": {
+              "request": {
+                "$ref": "#/components/schemas/RequestMetadata"
+              }
+            }
+          },
+          "hasMore": {
+            "type": "boolean"
+          },
+          "nextCursor": {
+            "type": "object",
+            "nullable": true,
+            "description": "Declared as a nullable object, as some real documents do; the value is a string."
+          }
+        }
+      },
+      "GadgetList": {
+        "type": "object",
+        "required": [
+          "object",
+          "data",
+          "meta"
+        ],
+        "properties": {
+          "object": {
+            "type": "string",
+            "enum": [
+              "list"
+            ]
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Gadget"
+            }
+          },
+          "meta": {
+            "type": "object",
+            "required": [
+              "request"
+            ],
+            "properties": {
+              "request": {
+                "$ref": "#/components/schemas/RequestMetadata"
+              }
+            }
+          }
+        }
+      },
+      "SprocketList": {
+        "type": "object",
+        "required": [
+          "object",
+          "data",
+          "meta",
+          "hasMore"
+        ],
+        "properties": {
+          "object": {
+            "type": "string",
+            "enum": [
+              "list"
+            ]
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Sprocket"
+            }
+          },
+          "meta": {
+            "type": "object",
+            "required": [
+              "request"
+            ],
+            "properties": {
+              "request": {
+                "$ref": "#/components/schemas/RequestMetadata"
+              }
+            }
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        }
+      },
+      "WidgetCreate": {
+        "type": "object",
+        "required": [
+          "displayName"
+        ],
+        "properties": {
+          "displayName": {
+            "type": "string"
+          }
+        }
+      },
+      "WidgetRename": {
+        "type": "object",
+        "required": [
+          "displayName"
+        ],
+        "properties": {
+          "displayName": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

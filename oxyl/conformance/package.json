@@ -1,0 +1,25 @@
+{
+  "name": "oxyl-orval-conformance",
+  "private": true,
+  "type": "module",
+  "description": "Checks that generated clients meet the cursor, idempotency and precondition contract. Not part of the upstream workspace.",
+  "scripts": {
+    "generate": "node ../../packages/orval/dist/bin/orval.mjs --config ./orval.config.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "npm run generate && npm run typecheck && vitest run"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "10.6.0",
+    "@tanstack/react-query": "5.107.1",
+    "@testing-library/react": "16.3.3",
+    "@types/node": "26.6.6",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "jsdom": "31.0.0",
+    "msw": "3.0.4",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "typescript": "7.0.2",
+    "vitest": "5.1.0"
+  }
+}
