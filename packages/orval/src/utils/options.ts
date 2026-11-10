@@ -2041,6 +2041,23 @@ function normalizeQueryOptions(
             queryOptions.useInfiniteQueryParamLocation,
         }
       : {}),
+    ...(queryOptions.useInfiniteQueryNextPageParam
+      ? {
+          useInfiniteQueryNextPageParam:
+            queryOptions.useInfiniteQueryNextPageParam,
+        }
+      : {}),
+    ...(queryOptions.useInfiniteQueryHasNextPage
+      ? {
+          useInfiniteQueryHasNextPage: queryOptions.useInfiniteQueryHasNextPage,
+        }
+      : {}),
+    ...(queryOptions.useInfiniteQueryLastItemParam
+      ? {
+          useInfiniteQueryLastItemParam:
+            queryOptions.useInfiniteQueryLastItemParam,
+        }
+      : {}),
     ...(queryOptions.options ? { options: queryOptions.options } : {}),
     ...(globalOptions.queryKey
       ? {

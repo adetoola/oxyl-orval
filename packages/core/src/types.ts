@@ -1694,6 +1694,13 @@ export interface QueryDocsOptions {
   route?: boolean;
 }
 
+export interface InfiniteQueryLastItemParam {
+  /** Dot path, in the response body, of the array of items. */
+  items: string;
+  /** Property of an item to send as the next page param. */
+  property: string;
+}
+
 export interface NormalizedQueryOptions {
   useQuery?: boolean;
   useSuspenseQuery?: boolean;
@@ -1709,6 +1716,24 @@ export interface NormalizedQueryOptions {
    * @default 'query'
    */
   useInfiniteQueryParamLocation?: InfiniteQueryParamLocation;
+  /**
+   * Dot path, in the response body, of the value to send as the next
+   * `useInfiniteQueryParam`. An operation whose response schema declares it
+   * gets a generated `getNextPageParam`.
+   */
+  useInfiniteQueryNextPageParam?: string;
+  /**
+   * Dot path, in the response body, of a boolean that is `false` on the last
+   * page. Used by the generated `getNextPageParam` when the response schema
+   * declares it.
+   */
+  useInfiniteQueryHasNextPage?: string;
+  /**
+   * Read the next page param from the last item of the list in the response
+   * body, for operations whose response does not declare
+   * `useInfiniteQueryNextPageParam`.
+   */
+  useInfiniteQueryLastItemParam?: InfiniteQueryLastItemParam;
   usePrefetch?: boolean;
   useInvalidate?: boolean;
   useSetQueryData?: boolean;
@@ -1756,6 +1781,24 @@ export interface QueryOptions {
    * @default 'query'
    */
   useInfiniteQueryParamLocation?: InfiniteQueryParamLocation;
+  /**
+   * Dot path, in the response body, of the value to send as the next
+   * `useInfiniteQueryParam`. An operation whose response schema declares it
+   * gets a generated `getNextPageParam`.
+   */
+  useInfiniteQueryNextPageParam?: string;
+  /**
+   * Dot path, in the response body, of a boolean that is `false` on the last
+   * page. Used by the generated `getNextPageParam` when the response schema
+   * declares it.
+   */
+  useInfiniteQueryHasNextPage?: string;
+  /**
+   * Read the next page param from the last item of the list in the response
+   * body, for operations whose response does not declare
+   * `useInfiniteQueryNextPageParam`.
+   */
+  useInfiniteQueryLastItemParam?: InfiniteQueryLastItemParam;
   usePrefetch?: boolean;
   useInvalidate?: boolean;
   useSetQueryData?: boolean;

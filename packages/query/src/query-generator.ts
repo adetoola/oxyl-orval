@@ -30,6 +30,7 @@ import {
 
 import { getHookOptions, getQueryErrorType, getQueryOptions } from './client';
 import type { FrameworkAdapter } from './framework-adapter';
+import { getInfiniteNextPageParamOption } from './infinite-page-param';
 import { logger } from './logger';
 import { generateMutationHook } from './mutation-generator';
 import {
@@ -735,6 +736,7 @@ const generateQueryImplementation = ({
     typeName: optionTypeName,
     queryParam,
     pageParamLocation = 'query',
+    nextPageParamOption = '',
     options,
     type,
     queryKeyFnName,
@@ -778,6 +780,7 @@ const generateQueryImplementation = ({
     type: (typeof QueryType)[keyof typeof QueryType];
     queryParam?: string;
     pageParamLocation?: InfiniteQueryParamLocation;
+    nextPageParamOption?: string;
     queryKeyFnName: string;
   };
   isRequestOptions: boolean;
@@ -1015,13 +1018,14 @@ const generateQueryImplementation = ({
     adapter,
   });
 
-  const queryOptionsImp = generateQueryOptions({
+  // Ahead of the caller's `...queryOptions`, so a caller can still replace it.
+  const queryOptionsImp = `${nextPageParamOption}${generateQueryOptions({
     params,
     options,
     type,
     adapter,
     useSkipToken,
-  });
+  })}`;
 
   const queryFnProperty = getQueryFnProperty({ useSkipToken, params, type });
 
@@ -1578,6 +1582,25 @@ export const generateQueryHook = async (
       })
       .join(',');
 
+    const infiniteNextPageParamOption = getInfiniteNextPageParamOption({
+      response,
+      context,
+      nextPageParam: query.useInfiniteQueryNextPageParam,
+      hasNextPage: query.useInfiniteQueryHasNextPage,
+      lastItemParam: query.useInfiniteQueryLastItemParam,
+      pageParamType: getInfinitePageParamType({
+        queryParam: infiniteQueryParam,
+        location: infiniteQueryParamLocation,
+        queryParams,
+        body,
+      }),
+      // An axios call without a mutator resolves to the `AxiosResponse`.
+      isPageEnvelope:
+        httpClient === 'fetch'
+          ? override.fetch.includeHttpResponseReturnType
+          : !mutator,
+    });
+
     const queries = [
       ...(effectiveUseInfinite
         ? [
@@ -1588,6 +1611,7 @@ export const generateQueryHook = async (
               type: QueryType.INFINITE,
               queryParam: infiniteQueryParam,
               pageParamLocation: infiniteQueryParamLocation,
+              nextPageParamOption: infiniteNextPageParamOption,
               queryKeyFnName: camel(`get-${operationName}-infinite-query-key`),
             },
           ]
@@ -1623,6 +1647,7 @@ export const generateQueryHook = async (
               type: QueryType.SUSPENSE_INFINITE,
               queryParam: infiniteQueryParam,
               pageParamLocation: infiniteQueryParamLocation,
+              nextPageParamOption: infiniteNextPageParamOption,
               queryKeyFnName: camel(`get-${operationName}-infinite-query-key`),
             },
           ]
