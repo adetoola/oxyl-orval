@@ -8,9 +8,7 @@
     "/api/widgets": {
       "get": {
         "operationId": "listWidgets",
-        "tags": [
-          "widgets"
-        ],
+        "tags": ["widgets"],
         "description": "List whose body declares the next cursor and a has-more flag.",
         "parameters": [
           {
@@ -59,9 +57,7 @@
               "type": "array",
               "items": {
                 "type": "string",
-                "enum": [
-                  "data.owner"
-                ]
+                "enum": ["data.owner"]
               }
             }
           }
@@ -90,9 +86,7 @@
       },
       "post": {
         "operationId": "createWidget",
-        "tags": [
-          "widgets"
-        ],
+        "tags": ["widgets"],
         "parameters": [
           {
             "name": "Idempotency-Key",
@@ -162,9 +156,7 @@
     "/api/widgets/{widget}": {
       "get": {
         "operationId": "retrieveWidget",
-        "tags": [
-          "widgets"
-        ],
+        "tags": ["widgets"],
         "parameters": [
           {
             "name": "widget",
@@ -218,9 +210,7 @@
     "/api/widgets/{widget}/rename": {
       "post": {
         "operationId": "renameWidget",
-        "tags": [
-          "widgets"
-        ],
+        "tags": ["widgets"],
         "parameters": [
           {
             "name": "widget",
@@ -312,9 +302,7 @@
     "/api/widgets/{widget}/archive": {
       "post": {
         "operationId": "archiveWidget",
-        "tags": [
-          "widgets"
-        ],
+        "tags": ["widgets"],
         "parameters": [
           {
             "name": "widget",
@@ -393,9 +381,7 @@
     "/api/gadgets": {
       "get": {
         "operationId": "listGadgets",
-        "tags": [
-          "gadgets"
-        ],
+        "tags": ["gadgets"],
         "description": "List with no paging fields in the body: the next page starts after the last item.",
         "parameters": [
           {
@@ -462,9 +448,7 @@
     "/api/sprockets": {
       "get": {
         "operationId": "listSprockets",
-        "tags": [
-          "sprockets"
-        ],
+        "tags": ["sprockets"],
         "description": "List with a has-more flag but no cursor in the body.",
         "parameters": [
           {
@@ -531,9 +515,7 @@
     "/api/status": {
       "get": {
         "operationId": "retrieveStatus",
-        "tags": [
-          "status"
-        ],
+        "tags": ["status"],
         "description": "Not paginated: must get no infinite hook.",
         "parameters": [
           {
@@ -569,9 +551,7 @@
     "schemas": {
       "RequestMetadata": {
         "type": "object",
-        "required": [
-          "id"
-        ],
+        "required": ["id"],
         "properties": {
           "id": {
             "type": "string",
@@ -596,19 +576,14 @@
           },
           "object": {
             "type": "string",
-            "enum": [
-              "widget"
-            ]
+            "enum": ["widget"]
           },
           "displayName": {
             "type": "string"
           },
           "status": {
             "type": "string",
-            "enum": [
-              "active",
-              "archived"
-            ]
+            "enum": ["active", "archived"]
           },
           "createdAt": {
             "type": "string",
@@ -623,55 +598,40 @@
       },
       "Gadget": {
         "type": "object",
-        "required": [
-          "id",
-          "object"
-        ],
+        "required": ["id", "object"],
         "properties": {
           "id": {
             "type": "string"
           },
           "object": {
             "type": "string",
-            "enum": [
-              "gadget"
-            ]
+            "enum": ["gadget"]
           }
         }
       },
       "Sprocket": {
         "type": "object",
-        "required": [
-          "id",
-          "object"
-        ],
+        "required": ["id", "object"],
         "properties": {
           "id": {
             "type": "string"
           },
           "object": {
             "type": "string",
-            "enum": [
-              "sprocket"
-            ]
+            "enum": ["sprocket"]
           }
         }
       },
       "WidgetResponse": {
         "type": "object",
-        "required": [
-          "data",
-          "meta"
-        ],
+        "required": ["data", "meta"],
         "properties": {
           "data": {
             "$ref": "#/components/schemas/Widget"
           },
           "meta": {
             "type": "object",
-            "required": [
-              "request"
-            ],
+            "required": ["request"],
             "properties": {
               "request": {
                 "$ref": "#/components/schemas/RequestMetadata"
@@ -682,16 +642,11 @@
       },
       "StatusResponse": {
         "type": "object",
-        "required": [
-          "data",
-          "meta"
-        ],
+        "required": ["data", "meta"],
         "properties": {
           "data": {
             "type": "object",
-            "required": [
-              "ok"
-            ],
+            "required": ["ok"],
             "properties": {
               "ok": {
                 "type": "boolean"
@@ -700,9 +655,7 @@
           },
           "meta": {
             "type": "object",
-            "required": [
-              "request"
-            ],
+            "required": ["request"],
             "properties": {
               "request": {
                 "$ref": "#/components/schemas/RequestMetadata"
@@ -713,18 +666,11 @@
       },
       "WidgetList": {
         "type": "object",
-        "required": [
-          "object",
-          "data",
-          "meta",
-          "hasMore"
-        ],
+        "required": ["object", "data", "meta", "hasMore"],
         "properties": {
           "object": {
             "type": "string",
-            "enum": [
-              "list"
-            ]
+            "enum": ["list"]
           },
           "data": {
             "type": "array",
@@ -734,9 +680,7 @@
           },
           "meta": {
             "type": "object",
-            "required": [
-              "request"
-            ],
+            "required": ["request"],
             "properties": {
               "request": {
                 "$ref": "#/components/schemas/RequestMetadata"
@@ -755,17 +699,11 @@
       },
       "GadgetList": {
         "type": "object",
-        "required": [
-          "object",
-          "data",
-          "meta"
-        ],
+        "required": ["object", "data", "meta"],
         "properties": {
           "object": {
             "type": "string",
-            "enum": [
-              "list"
-            ]
+            "enum": ["list"]
           },
           "data": {
             "type": "array",
@@ -775,9 +713,7 @@
           },
           "meta": {
             "type": "object",
-            "required": [
-              "request"
-            ],
+            "required": ["request"],
             "properties": {
               "request": {
                 "$ref": "#/components/schemas/RequestMetadata"
@@ -788,18 +724,11 @@
       },
       "SprocketList": {
         "type": "object",
-        "required": [
-          "object",
-          "data",
-          "meta",
-          "hasMore"
-        ],
+        "required": ["object", "data", "meta", "hasMore"],
         "properties": {
           "object": {
             "type": "string",
-            "enum": [
-              "list"
-            ]
+            "enum": ["list"]
           },
           "data": {
             "type": "array",
@@ -809,9 +738,7 @@
           },
           "meta": {
             "type": "object",
-            "required": [
-              "request"
-            ],
+            "required": ["request"],
             "properties": {
               "request": {
                 "$ref": "#/components/schemas/RequestMetadata"
@@ -825,9 +752,7 @@
       },
       "WidgetCreate": {
         "type": "object",
-        "required": [
-          "displayName"
-        ],
+        "required": ["displayName"],
         "properties": {
           "displayName": {
             "type": "string"
@@ -836,9 +761,7 @@
       },
       "WidgetRename": {
         "type": "object",
-        "required": [
-          "displayName"
-        ],
+        "required": ["displayName"],
         "properties": {
           "displayName": {
             "type": "string"

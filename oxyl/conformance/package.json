@@ -1,8 +1,8 @@
 {
   "name": "oxyl-orval-conformance",
   "private": true,
-  "type": "module",
   "description": "Checks that generated clients meet the cursor, idempotency and precondition contract. Not part of the upstream workspace.",
+  "type": "module",
   "scripts": {
     "generate": "node ../../packages/orval/dist/bin/orval.mjs --config ./orval.config.ts",
     "typecheck": "tsc -p tsconfig.json",

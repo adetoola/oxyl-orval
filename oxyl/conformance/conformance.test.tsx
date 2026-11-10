@@ -5,27 +5,43 @@ import { setupServer } from 'msw/node';
 import type { ReactNode } from 'react';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
-import type { Widget, WidgetList } from './generated/model';
+import * as gadgets from './generated/gadgets/gadgets';
+import type {
+  ArchiveWidgetHeaders,
+  CreateWidgetHeaders,
+  Widget,
+  WidgetResponse,
+} from './generated/model';
+import * as sprockets from './generated/sprockets/sprockets';
+import * as status from './generated/status/status';
 import {
   getRetrieveWidgetQueryKey,
   retrieveWidget,
   useArchiveWidget,
   useCreateWidget,
   useListWidgetsInfinite,
-  useUpdateWidget,
+  useRenameWidget,
 } from './generated/widgets/widgets';
 import {
   getListWidgetsMockHandler,
   getListWidgetsResponseMock,
 } from './generated/widgets/widgets.msw';
+import { ApiError, getResponseHeaders } from './mutator';
+
+const meta = { request: { id: 'req_1' } };
 
 const widget = (id: string): Widget => ({
   id,
   object: 'widget',
-  display_name: `Widget ${id}`,
+  displayName: `Widget ${id}`,
   status: 'active',
-  created_at: '2026-01-01T00:00:00Z',
-  archived_at: null,
+  createdAt: '2026-01-01T00:00:00Z',
+  archivedAt: null,
+});
+
+const widgetResponse = (id: string): WidgetResponse => ({
+  data: widget(id),
+  meta,
 });
 
 const server = setupServer();
@@ -42,31 +58,129 @@ const wrapper = () => {
   );
 };
 
-describe('1. cursor lists page without caller-supplied paging options', () => {
-  it('sends next_cursor as starting_after and stops when has_more is false', async () => {
+const cursorOf = (request: Request) =>
+  new URL(request.url).searchParams.get('startingAfter');
+
+describe('1. lists page without caller-supplied paging options', () => {
+  it('follows the cursor in the body and stops when the flag is false', async () => {
     const cursors: (string | null)[] = [];
     server.use(
-      getListWidgetsMockHandler(({ request }) => {
-        const cursor = new URL(request.url).searchParams.get('starting_after');
+      http.get('*/api/widgets', ({ request }) => {
+        const cursor = cursorOf(request);
         cursors.push(cursor);
-        const page: WidgetList =
+        return HttpResponse.json(
           cursor === null
-            ? { object: 'list', data: [widget('wid_1')], has_more: true, next_cursor: 'cur_1' }
-            : { object: 'list', data: [widget('wid_2')], has_more: false, next_cursor: null };
-        return page;
+            ? {
+                object: 'list',
+                data: [widget('wid_1')],
+                hasMore: true,
+                nextCursor: 'cur_1',
+                meta,
+              }
+            : {
+                object: 'list',
+                data: [widget('wid_2')],
+                hasMore: false,
+                nextCursor: null,
+                meta,
+              },
+        );
       }),
     );
 
-    const { result } = renderHook(() => useListWidgetsInfinite(), { wrapper: wrapper() });
+    const { result } = renderHook(() => useListWidgetsInfinite(), {
+      wrapper: wrapper(),
+    });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.hasNextPage).toBe(true);
-
     await act(() => result.current.fetchNextPage());
 
     await waitFor(() => expect(result.current.data?.pages).toHaveLength(2));
     expect(cursors).toEqual([null, 'cur_1']);
     expect(result.current.hasNextPage).toBe(false);
+  });
+
+  it('pages after the last item when the body has no paging fields', async () => {
+    const cursors: (string | null)[] = [];
+    server.use(
+      http.get('*/api/gadgets', ({ request }) => {
+        const cursor = cursorOf(request);
+        cursors.push(cursor);
+        return HttpResponse.json({
+          object: 'list',
+          data:
+            cursor === null
+              ? [
+                  { id: 'gad_1', object: 'gadget' },
+                  { id: 'gad_2', object: 'gadget' },
+                ]
+              : [],
+          meta,
+        });
+      }),
+    );
+
+    const { result } = renderHook(() => gadgets.useListGadgetsInfinite(), {
+      wrapper: wrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.hasNextPage).toBe(true);
+    await act(() => result.current.fetchNextPage());
+
+    await waitFor(() => expect(result.current.data?.pages).toHaveLength(2));
+    expect(cursors).toEqual([null, 'gad_2']);
+    expect(result.current.hasNextPage).toBe(false);
+  });
+
+  it('pages after the last item and stops on the flag when only the flag is declared', async () => {
+    server.use(
+      http.get('*/api/sprockets', () =>
+        HttpResponse.json({
+          object: 'list',
+          data: [{ id: 'spr_1', object: 'sprocket' }],
+          hasMore: false,
+          meta,
+        }),
+      ),
+    );
+
+    const { result } = renderHook(() => sprockets.useListSprocketsInfinite(), {
+      wrapper: wrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.hasNextPage).toBe(false);
+  });
+
+  it('lets the caller replace the generated paging', async () => {
+    server.use(
+      http.get('*/api/widgets', () =>
+        HttpResponse.json({
+          object: 'list',
+          data: [],
+          hasMore: true,
+          nextCursor: 'cur_1',
+          meta,
+        }),
+      ),
+    );
+
+    const { result } = renderHook(
+      () =>
+        useListWidgetsInfinite(undefined, {
+          query: { getNextPageParam: () => undefined },
+        }),
+      { wrapper: wrapper() },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.hasNextPage).toBe(false);
+  });
+
+  it('generates no infinite hook for an operation that is not paginated', () => {
+    expect(Object.keys(status)).not.toContain('useRetrieveStatusInfinite');
   });
 });
 
@@ -74,11 +188,11 @@ describe('2. idempotent mutations', () => {
   const recordKeys = (failFirst = false) => {
     const keys: (string | null)[] = [];
     server.use(
-      http.post('*/widgets', ({ request }) => {
+      http.post('*/api/widgets', ({ request }) => {
         keys.push(request.headers.get('Idempotency-Key'));
         return failFirst && keys.length === 1
           ? HttpResponse.error()
-          : HttpResponse.json(widget('wid_1'), { status: 201 });
+          : HttpResponse.json(widgetResponse('wid_1'), { status: 201 });
       }),
     );
     return keys;
@@ -86,9 +200,11 @@ describe('2. idempotent mutations', () => {
 
   it('creates a key when the caller passes none', async () => {
     const keys = recordKeys();
-    const { result } = renderHook(() => useCreateWidget(), { wrapper: wrapper() });
+    const { result } = renderHook(() => useCreateWidget(), {
+      wrapper: wrapper(),
+    });
 
-    await act(() => result.current.mutateAsync({ data: { display_name: 'A' } }));
+    await act(() => result.current.mutateAsync({ data: { displayName: 'A' } }));
 
     expect(keys).toHaveLength(1);
     expect(keys[0]).toMatch(/^[0-9a-f-]{36}$/);
@@ -101,7 +217,7 @@ describe('2. idempotent mutations', () => {
       { wrapper: wrapper() },
     );
 
-    await act(() => result.current.mutateAsync({ data: { display_name: 'A' } }));
+    await act(() => result.current.mutateAsync({ data: { displayName: 'A' } }));
 
     expect(keys).toHaveLength(2);
     expect(keys[0]).not.toBeNull();
@@ -110,87 +226,135 @@ describe('2. idempotent mutations', () => {
 
   it('uses a new key for a new set of variables', async () => {
     const keys = recordKeys();
-    const { result } = renderHook(() => useCreateWidget(), { wrapper: wrapper() });
+    const { result } = renderHook(() => useCreateWidget(), {
+      wrapper: wrapper(),
+    });
 
-    await act(() => result.current.mutateAsync({ data: { display_name: 'A' } }));
-    await act(() => result.current.mutateAsync({ data: { display_name: 'A' } }));
+    await act(() => result.current.mutateAsync({ data: { displayName: 'A' } }));
+    await act(() => result.current.mutateAsync({ data: { displayName: 'A' } }));
 
+    expect(keys[1]).not.toBeNull();
     expect(keys[1]).not.toBe(keys[0]);
   });
 
   it('lets the caller pass its own key', async () => {
     const keys = recordKeys();
-    const { result } = renderHook(() => useCreateWidget(), { wrapper: wrapper() });
+    const { result } = renderHook(() => useCreateWidget(), {
+      wrapper: wrapper(),
+    });
 
     await act(() =>
       result.current.mutateAsync({
-        data: { display_name: 'A' },
+        data: { displayName: 'A' },
         headers: { 'Idempotency-Key': 'mine' },
       }),
     );
 
     expect(keys).toEqual(['mine']);
   });
-
-  it('keeps other required headers required and adds the key beside them', async () => {
-    const seen: Record<string, string | null> = {};
-    server.use(
-      http.post('*/widgets/:widget/archive', ({ request }) => {
-        seen.key = request.headers.get('Idempotency-Key');
-        seen.match = request.headers.get('If-Match');
-        return HttpResponse.json(widget('wid_1'));
-      }),
-    );
-    const { result } = renderHook(() => useArchiveWidget(), { wrapper: wrapper() });
-
-    await act(() =>
-      result.current.mutateAsync({ widget: 'wid_1', headers: { 'If-Match': '"v1"' } }),
-    );
-
-    expect(seen.match).toBe('"v1"');
-    expect(seen.key).toMatch(/^[0-9a-f-]{36}$/);
-  });
 });
 
 describe('3 and 4. If-Match and per-request headers', () => {
-  it('sends If-Match from the variables and extra headers from the request option', async () => {
+  it('keeps If-Match required, adds the key beside it and passes request headers on', async () => {
     const seen: Record<string, string | null> = {};
     server.use(
-      http.patch('*/widgets/:widget', ({ request }) => {
-        seen.match = request.headers.get('If-Match');
-        seen.extra = request.headers.get('X-Extra');
-        return HttpResponse.json(widget('wid_1'));
+      http.post('*/api/widgets/:widget/rename', ({ request }) => {
+        for (const name of [
+          'If-Match',
+          'Idempotency-Key',
+          'X-Extra',
+          'Api-Version',
+        ]) {
+          seen[name] = request.headers.get(name);
+        }
+        return HttpResponse.json(widgetResponse('wid_1'));
       }),
     );
     const { result } = renderHook(
-      () => useUpdateWidget({ request: { headers: { 'X-Extra': 'yes' } } }),
+      () => useRenameWidget({ request: { headers: { 'X-Extra': 'yes' } } }),
       { wrapper: wrapper() },
     );
 
     await act(() =>
       result.current.mutateAsync({
         widget: 'wid_1',
-        data: { display_name: 'B' },
+        data: { displayName: 'B' },
         headers: { 'If-Match': '"v1"' },
       }),
     );
 
-    expect(seen).toEqual({ match: '"v1"', extra: 'yes' });
+    expect(seen['If-Match']).toBe('"v1"');
+    expect(seen['Idempotency-Key']).toMatch(/^[0-9a-f-]{36}$/);
+    expect(seen['X-Extra']).toBe('yes');
+    expect(seen['Api-Version']).toBe('2026-01-01');
+  });
+
+  it('types If-Match as required and leaves the global header out of signatures', () => {
+    const archive: ArchiveWidgetHeaders = {
+      'If-Match': '"v1"',
+      'Idempotency-Key': 'k',
+    };
+    const create: CreateWidgetHeaders = { 'Idempotency-Key': 'k' };
+    // @ts-expect-error If-Match is required in the mutation variables
+    const missing: Parameters<
+      ReturnType<typeof useArchiveWidget>['mutate']
+    >[0] = { widget: 'w', headers: {} };
+    // @ts-expect-error the header the client sets globally is not a parameter
+    const extra: CreateWidgetHeaders = {
+      'Idempotency-Key': 'k',
+      'Api-Version': '1',
+    };
+
+    expect([archive, create, missing, extra]).toHaveLength(4);
   });
 });
 
-describe('5. ETag', () => {
-  it('returns response headers to the caller', async () => {
+describe('5. response body, headers and errors', () => {
+  it('returns the parsed body and keeps the response headers reachable', async () => {
     server.use(
-      http.get('*/widgets/:widget', () =>
-        HttpResponse.json(widget('wid_1'), { headers: { ETag: '"v7"' } }),
+      http.get('*/api/widgets/:widget', () =>
+        HttpResponse.json(widgetResponse('wid_1'), {
+          headers: { ETag: '"v7"' },
+        }),
       ),
     );
 
     const response = await retrieveWidget('wid_1');
 
-    expect(response.headers.get('ETag')).toBe('"v7"');
     expect(response.data.id).toBe('wid_1');
+    expect(getResponseHeaders(response)?.get('ETag')).toBe('"v7"');
+  });
+
+  it('types errors from the fetch function when the document declares no error schema', async () => {
+    server.use(
+      http.post('*/api/widgets', () =>
+        HttpResponse.json(
+          {
+            error: {
+              type: 'invalid_request_error',
+              code: 'invalid_name',
+              message: 'Bad name.',
+              request_id: 'req_9',
+            },
+          },
+          { status: 422 },
+        ),
+      ),
+    );
+    const { result } = renderHook(() => useCreateWidget(), {
+      wrapper: wrapper(),
+    });
+
+    await act(() =>
+      result.current
+        .mutateAsync({ data: { displayName: '' } })
+        .catch(() => undefined),
+    );
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    const error: ApiError | null = result.current.error;
+    expect(error?.status).toBe(422);
+    expect(error?.body?.error.code).toBe('invalid_name');
   });
 });
 
@@ -201,11 +365,30 @@ describe('6. query keys', () => {
 });
 
 describe('7. mocks', () => {
-  it('produce a valid list envelope by default', () => {
+  it('take a fixture in place of the generated response', async () => {
+    server.use(
+      getListWidgetsMockHandler({
+        object: 'list',
+        data: [widget('wid_9')],
+        hasMore: false,
+        nextCursor: null,
+        meta,
+      }),
+    );
+
+    const { result } = renderHook(() => useListWidgetsInfinite(), {
+      wrapper: wrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.pages[0]?.data[0]?.id).toBe('wid_9');
+  });
+
+  it('produce a valid list by default', () => {
     const list = getListWidgetsResponseMock();
 
     expect(list.object).toBe('list');
     expect(Array.isArray(list.data)).toBe(true);
-    expect(typeof list.has_more).toBe('boolean');
+    expect(typeof list.hasMore).toBe('boolean');
   });
 });
